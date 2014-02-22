@@ -13,6 +13,7 @@
 % the License.
 
 -module(swirl_sup).
+-include("swirl.hrl").
 
 -behaviour(supervisor).
 
@@ -37,5 +38,14 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    Supervisors = [ {peer_sup, {peer_sup, start_link, []},
+         permanent,
+         infinity,
+         supervisor, [peer_sup]},
+        {swarm_sup, {swarm_sup, start_link, []},
+         permanent,
+         infinity,
+         supervisor, [swarm_sup]} ],
 
+    % summon the supervisors
+    {ok, {{one_for_one, 10, 60}, Supervisors}}.

@@ -12,29 +12,32 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(swirl_app).
+-module(swarm_sup).
 -include("swirl.hrl").
--behaviour(application).
 
-%% Application callbacks
--export([start/2,
-         stop/1]).
+-behaviour(supervisor).
+
+%% API
+-export([start_link/0]).
+
+%% Supervisor callbacks
+-export([init/1]).
+
+%% Helper macro for declaring children of supervisor
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
-%% Application callbacks
+%% API functions
 %% ===================================================================
 
-%% used by application:start/1
-start(_Type, _Start_Args) ->
-    {ok, Version} = application:get_key(swirl, vsn),
-    ?INFO("swirl: protocol ~s~n", [?PPSPP_RELEASE]),
-    ?INFO("swirl: version #~s~n", [Version]),
-    case swirl_sup:start_link() of
-        {ok, Pid} ->
-            {ok, Pid};
-        Other ->
-            {error, Other}
-    end.
+-spec start_link() -> {ok, pid()}.
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-stop(_State) ->
-    ok.
+%% ===================================================================
+%% Supervisor callbacks
+%% ===================================================================
+
+init([]) ->
+	Workers = [],
+	{ok, {{one_for_one, 10, 60}, Workers}}.
