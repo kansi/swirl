@@ -1,6 +1,8 @@
 -module(merkle).
 -export([hash/1]).
 
+-include("../include/ppspp.hrl").
+
 %% TODO either add padding to the leaf nodes for completing
 %% the hash tree or use a different approach
 
@@ -25,10 +27,11 @@ hash(Path) ->
     FileHash = read_file(Fdr, []),
 
     %% add leaves to complete the pairs in hash tree
-    padding(FileHash),
+    MerkleTree = padding(FileHash),
+    io:format("~p~n", MerkleTree)
 
     %% calculate root hash for the tree
-    rootHash(FileHash, []),
+    %rootHash(FileHash, []),
 
     %% close the file descripter
     file:close(Fdr),
@@ -102,10 +105,10 @@ padding(HashList) ->
     Size    = erlang:length(HashList),
     Padding = math:pow(2, ceiling(math:log(Size))) - Size,
 
-    %%% TODO write code to add padding leaves to the merkle tree
     %% generate string (all zeros) of chunk size
-    NullSring = string:copies("0", ?CHUNK),
-    ok.
+    NullSring  = string:copies("0", ?CHUNK),
+    MerkleTree = HashList ++ lists:duplicate(erlang:round(Padding), erlang:list_to_binary(NullSring)),
+    MerkleTree.
 
 %%
 %% Helper function : calculate ceiling 
