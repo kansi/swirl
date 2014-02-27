@@ -39,7 +39,7 @@ hash(Path) ->
 %%
 rootHash([], HashAcc) ->
     %% if the HashAcc has a size of 1 means that we have
-    %% reached of the tree
+    %% reached root of the tree
     if
         erlang:length(HashAcc) =:= 1 ->
             HashAcc;
