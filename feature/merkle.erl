@@ -3,9 +3,6 @@
 
 -include("../include/ppspp.hrl").
 
-%% TODO either add padding to the leaf nodes for completing
-%% the hash tree or use a different approach
-
 %% specify the chunk size to be read of the file
 -define(CHUNK, 1024).
 
@@ -21,26 +18,28 @@ hash(Path) ->
     %FileName = filename:basename(Path),
 
     %% open file in read mode
+    %% TODO read file in binary mode
     {ok, Fdr} = file:open(Path, [read]),
 
     %% read data of the file in 1Kb and hash it
     FileHash = read_file(Fdr, []),
 
-    %% add leaves to complete the pairs in hash tree
-    MerkleTree = padding(FileHash),
-    io:format("~p~n", MerkleTree)
-
-    %% calculate root hash for the tree
-    %rootHash(FileHash, []),
-
     %% close the file descripter
     file:close(Fdr),
-    ok.
+
+    %% add leaves to complete the pairs in hash tree
+    MerkleTree = padding(FileHash),
+    io:format("~p~n", MerkleTree),
+
+    %% calculate root hash for the tree
+    rootHash(FileHash, []).
 
 %%
 %% calculate root hash for the leaves of the merkle tree
 %%
 rootHash([], HashAcc) ->
+    %% if the HashAcc has a size of 1 means that we have
+    %% reached of the tree
     if
         erlang:length(HashAcc) =:= 1 ->
             HashAcc;
@@ -52,14 +51,13 @@ rootHash([], HashAcc) ->
 rootHash([HashChunk1, HashChunk2 | T], HashAcc) ->
 
     %% join the hashChunks using space as separator
-    %% NOTE SPACE IS BEING ADDED INTO THE HASHES
-    NewChunk   = binary_join([HashChunk1, HashChunk2], <<"">>),
+    NewChunk  = binary_join([HashChunk1, HashChunk2], <<"">>),
 
     %% calculate the hash for this new chunk
-    ChunkHash  = crypto:hash(?HASH_ALGO, NewChunk),
+    ChunkHash = crypto:hash(?HASH_ALGO, NewChunk),
 
     %% add the hashed chunk to the accumulator
-    Acc = lists:append([HashAcc, ChunkHash]),
+    Acc       = lists:append([HashAcc, ChunkHash]),
 
     %% get the remaining list
     rootHash(T, Acc).
@@ -102,12 +100,19 @@ binary_join(List, Sep) ->
 %% Helper function : add padding
 %%
 padding(HashList) ->
+    %% Calulate the padding required for the hash tree
     Size    = erlang:length(HashList),
     Padding = math:pow(2, ceiling(math:log(Size))) - Size,
 
     %% generate string (all zeros) of chunk size
     NullSring  = string:copies("0", ?CHUNK),
-    MerkleTree = HashList ++ lists:duplicate(erlang:round(Padding), erlang:list_to_binary(NullSring)),
+
+    %% hash the null string
+    NullHash   = crypto:hash(?HASH_ALGO, NullSring),
+
+    %% add the hash of null string to the Hash tree
+    %% (a total of n=Padding null hashes are added)
+    MerkleTree = HashList ++ lists:duplicate(erlang:round(Padding), erlang:list_to_binary(NullHash)),
     MerkleTree.
 
 %%
